@@ -507,3 +507,7 @@ npm run check
 ```
 
 ## License
+
+This project is licensed under [CC BY-NC-SA 4.0](LICENSE) — Attribution-NonCommercial-ShareAlike.
+You may share and adapt this work for non-commercial purposes with attribution, under the same license.
+For commercial use, please contact Databis to obtain a commercial license.
