@@ -1,0 +1,97 @@
+{
+    "name": "@databis/docs-module",
+    "version": "1.0.0",
+    "description": "Framework-agnostic documentation UI and API client for databis/laravel-docs-module",
+    "type": "module",
+    "main": "dist/index.cjs",
+    "module": "dist/index.js",
+    "types": "./dist/index.d.ts",
+    "files": [
+        "dist",
+        "src",
+        "examples",
+        "README.md",
+        "LICENSE"
+    ],
+    "sideEffects": [
+        "./dist/style.css"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs",
+            "default": "./dist/index.js"
+        },
+        "./style.css": "./dist/style.css",
+        "./api": {
+            "types": "./dist/api.d.ts",
+            "import": "./dist/api.js",
+            "require": "./dist/api.cjs",
+            "default": "./dist/api.js"
+        },
+        "./local-worker": {
+            "types": "./dist/local-worker.d.ts",
+            "import": "./dist/local-worker.js",
+            "require": "./dist/local-worker.cjs",
+            "default": "./dist/local-worker.js"
+        },
+        "./renderer": {
+            "types": "./dist/renderer.d.ts",
+            "import": "./dist/renderer.js",
+            "require": "./dist/renderer.cjs",
+            "default": "./dist/renderer.js"
+        },
+        "./editor": {
+            "types": "./dist/editor.d.ts",
+            "import": "./dist/editor.js",
+            "require": "./dist/editor.cjs",
+            "default": "./dist/editor.js"
+        },
+        "./schema": {
+            "types": "./dist/schema.d.ts",
+            "import": "./dist/schema.js",
+            "require": "./dist/schema.cjs",
+            "default": "./dist/schema.js"
+        }
+    },
+    "scripts": {
+        "test": "tsx --test test/api-client.test.ts test/docs-element.test.ts test/editor.test.ts test/local-worker.test.ts test/schema.test.ts test/tiptap-renderer.test.ts",
+        "typecheck": "tsc --noEmit",
+        "check": "npm run typecheck",
+        "build": "tsup --config tsup.config.ts && tsc --project tsconfig.build.json && tsx scripts/copy-build-assets.ts && tsc --project tsconfig.package.json && tsx scripts/verify-build.ts",
+        "prepublishOnly": "npm run build"
+    },
+    "keywords": [
+        "documentation",
+        "web-component",
+        "custom-element",
+        "tiptap",
+        "prosemirror",
+        "rich-text-editor",
+        "laravel",
+        "framework-agnostic"
+    ],
+    "license": "CC-BY-NC-SA-4.0",
+    "engines": {
+        "node": ">=18"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "@tiptap/core": "^3.29.1",
+        "@tiptap/extension-image": "^3.29.1",
+        "@tiptap/extension-table": "^3.29.1",
+        "@tiptap/pm": "^3.29.1",
+        "@tiptap/starter-kit": "^3.29.1"
+    },
+    "devDependencies": {
+        "@types/jsdom": "^27.0.0",
+        "@types/node": "^24.0.0",
+        "jsdom": "^29.1.1",
+        "tsup": "^8.0.0",
+        "tsx": "^4.0.0",
+        "typescript": "^7.0.2"
+    }
+}

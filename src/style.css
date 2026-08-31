@@ -1,0 +1,1232 @@
+.docs-module {
+  --docs-color-primary: #3176A1;
+  --docs-color-primary-hover: color-mix(in srgb, var(--docs-color-primary) 86%, black);
+  --docs-color-primary-active: color-mix(in srgb, var(--docs-color-primary) 74%, black);
+  --docs-color-primary-soft: color-mix(in srgb, var(--docs-color-primary) 11%, white);
+  --docs-color-primary-softer: color-mix(in srgb, var(--docs-color-primary) 5%, white);
+  --docs-color-on-primary: color-mix(in srgb, var(--docs-color-primary) 2%, white);
+  --docs-color-background: color-mix(in srgb, var(--docs-color-primary) 2%, white);
+  --docs-color-surface: color-mix(in srgb, var(--docs-color-primary) 5%, white);
+  --docs-color-surface-raised: color-mix(in srgb, var(--docs-color-primary) 1%, white);
+  --docs-color-surface-hover: color-mix(in srgb, var(--docs-color-primary) 8%, white);
+  --docs-color-border: color-mix(in srgb, var(--docs-color-primary) 16%, white);
+  --docs-color-border-strong: color-mix(in srgb, var(--docs-color-primary) 27%, white);
+  --docs-color-text: color-mix(in srgb, var(--docs-color-primary) 18%, #1f2937);
+  --docs-color-muted: color-mix(in srgb, var(--docs-color-primary) 18%, #667085);
+  --docs-color-danger: color-mix(in srgb, var(--docs-color-primary) 10%, #c9343a);
+  --docs-color-danger-soft: color-mix(in srgb, var(--docs-color-danger) 10%, white);
+  --docs-color-code-background: color-mix(in srgb, var(--docs-color-primary) 5%, #ffffff);
+  --docs-color-code-text: color-mix(in srgb, var(--docs-color-primary) 7%, #1f2937);
+  --docs-color-accent: var(--docs-color-primary);
+  --docs-shadow-color: color-mix(in srgb, var(--docs-color-primary) 22%, transparent);
+  --docs-shadow-small: 0 0.125rem 0.375rem var(--docs-shadow-color);
+  --docs-shadow-card: 0 0.25rem 1.125rem var(--docs-shadow-color);
+  --docs-shadow-floating: 0 0.75rem 2rem color-mix(in srgb, var(--docs-color-primary) 28%, transparent);
+  --docs-radius-small: 0.45rem;
+  --docs-radius: 0.65rem;
+  --docs-radius-large: 0.9rem;
+  --docs-navigation-width: 18rem;
+  --docs-toc-width: 15rem;
+  --docs-content-width: 56rem;
+  --docs-height: 100dvh;
+  --docs-editor-height: 31.25rem;
+  --docs-transition: 160ms ease;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  height: var(--docs-height);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--docs-color-border);
+  border-radius: var(--docs-radius-large);
+  box-sizing: border-box;
+  color: var(--docs-color-text);
+  background: var(--docs-color-surface);
+  box-shadow: var(--docs-shadow-card);
+  font: 400 0.9375rem/1.55 Inter, "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.docs-module *,
+.docs-module *::before,
+.docs-module *::after {
+  box-sizing: border-box;
+}
+
+.docs-module [hidden] {
+  display: none !important;
+}
+
+.docs-module button,
+.docs-module input,
+.docs-module textarea,
+.docs-module select {
+  color: inherit;
+  font: inherit;
+}
+
+.docs-module button {
+  cursor: pointer;
+}
+
+.docs-module button:disabled,
+.docs-module input:disabled,
+.docs-module textarea:disabled,
+.docs-module select:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.docs-module button:focus-visible,
+.docs-module input:focus-visible,
+.docs-module textarea:focus-visible,
+.docs-module select:focus-visible,
+.docs-module a:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--docs-color-primary) 30%, transparent);
+  outline-offset: 2px;
+}
+
+.docs-module__status:empty {
+  display: none;
+}
+
+.docs-module__status {
+  position: relative;
+  z-index: 3;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--docs-color-primary) 20%, white);
+  color: var(--docs-color-primary-active);
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--docs-color-primary-soft);
+}
+
+.docs-module__status[data-type="error"] {
+  border-bottom-color: color-mix(in srgb, var(--docs-color-danger) 22%, white);
+  color: var(--docs-color-danger);
+  background: var(--docs-color-danger-soft);
+}
+
+.docs-module__header {
+  display: flex;
+  position: relative;
+  z-index: 2;
+  min-height: 4.5rem;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--docs-color-border);
+  background: var(--docs-color-surface-raised);
+  box-shadow: var(--docs-shadow-small);
+}
+
+.docs-module__brand {
+  display: inline-flex;
+  flex: none;
+  gap: 0.55rem;
+  align-items: center;
+  color: var(--docs-color-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.1;
+  text-decoration: none;
+  transition: color var(--docs-transition);
+}
+
+.docs-module__brand:hover,
+.docs-module__brand:focus-visible {
+  color: var(--docs-color-primary-active);
+}
+
+.docs-module__brand-logo {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+}
+
+.docs-module__brand-text {
+  white-space: nowrap;
+}
+
+.docs-module__search {
+  display: flex;
+  flex: 1;
+  gap: 0.65rem;
+  max-width: 45rem;
+  margin-inline: auto;
+}
+
+.docs-module__search input,
+.docs-module__editor input,
+.docs-module__editor textarea,
+.docs-module__editor select {
+  width: 100%;
+  border: 1px solid var(--docs-color-border-strong);
+  border-radius: var(--docs-radius);
+  color: var(--docs-color-text);
+  background: var(--docs-color-surface-raised);
+  transition:
+    border-color var(--docs-transition),
+    box-shadow var(--docs-transition),
+    background-color var(--docs-transition);
+}
+
+.docs-module__search input {
+  min-height: 0.2rem;
+  padding: 0.1rem 1rem;
+  background: var(--docs-color-background);
+}
+
+.docs-module__editor input,
+.docs-module__editor textarea,
+.docs-module__editor select {
+  padding: 0.72rem 0.85rem;
+}
+
+.docs-module__editor textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.docs-module__search input::placeholder,
+.docs-module__editor input::placeholder,
+.docs-module__editor textarea::placeholder {
+  color: var(--docs-color-muted);
+  opacity: 0.72;
+}
+
+.docs-module__search input:hover,
+.docs-module__editor input:hover,
+.docs-module__editor textarea:hover,
+.docs-module__editor select:hover {
+  border-color: color-mix(in srgb, var(--docs-color-primary) 42%, white);
+}
+
+.docs-module__search input:focus,
+.docs-module__editor input:focus,
+.docs-module__editor textarea:focus,
+.docs-module__editor select:focus {
+  border-color: var(--docs-color-primary);
+  outline: 0;
+  background: var(--docs-color-surface-raised);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--docs-color-primary) 14%, transparent);
+}
+
+.docs-module__search button,
+.docs-module__article-header button[data-action="toggle-publish"],
+.docs-module__editor-actions button[type="submit"] {
+  min-height: 1rem;
+  padding: 0.2rem 1rem;
+  border: 1px solid var(--docs-color-primary);
+  border-radius: var(--docs-radius);
+  color: var(--docs-color-on-primary);
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--docs-color-primary);
+  box-shadow: 0 0.18rem 0.5rem color-mix(in srgb, var(--docs-color-primary) 30%, transparent);
+  transition:
+    border-color var(--docs-transition),
+    background-color var(--docs-transition),
+    box-shadow var(--docs-transition),
+    transform var(--docs-transition);
+}
+
+.docs-module__search button:hover,
+.docs-module__article-header button[data-action="toggle-publish"]:hover,
+.docs-module__editor-actions button[type="submit"]:hover {
+  border-color: var(--docs-color-primary-hover);
+  background: var(--docs-color-primary-hover);
+  box-shadow: 0 0.25rem 0.75rem color-mix(in srgb, var(--docs-color-primary) 38%, transparent);
+  transform: translateY(-1px);
+}
+
+.docs-module__search button:active,
+.docs-module__article-header button[data-action="toggle-publish"]:active,
+.docs-module__editor-actions button[type="submit"]:active {
+  border-color: var(--docs-color-primary-active);
+  background: var(--docs-color-primary-active);
+  box-shadow: none;
+  transform: translateY(0);
+}
+
+.docs-module__layout {
+  display: grid;
+  grid-template-columns: var(--docs-navigation-width) minmax(0, 1fr) var(--docs-toc-width);
+  min-height: 0;
+  overflow: hidden;
+  background: var(--docs-color-background);
+}
+
+.docs-module__navigation,
+.docs-module__main,
+.docs-module__toc {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+
+.docs-module__navigation,
+.docs-module__toc {
+  min-width: 0;
+  padding: 1.15rem;
+  background: var(--docs-color-surface-raised);
+}
+
+.docs-module__navigation {
+  border-right: 1px solid var(--docs-color-border);
+}
+
+.docs-module__navigation section + section {
+  margin-top: 1.25rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--docs-color-border);
+}
+
+.docs-module__toc {
+  border-left: 1px solid var(--docs-color-border);
+  font-size: 0.875rem;
+}
+
+.docs-module__navigation h2,
+.docs-module__toc h2 {
+  margin: 0;
+  color: var(--docs-color-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.docs-module__navigation-heading {
+  display: flex;
+  min-height: 2rem;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.55rem;
+}
+
+.docs-module__add-button {
+  width: auto;
+  min-height: 1rem;
+  padding: 0.2rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--docs-color-primary) 20%, white);
+  border-radius: 999px;
+  color: var(--docs-color-primary-active);
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.2;
+  background: var(--docs-color-primary-soft);
+  white-space: nowrap;
+  text-overflow: ellipsi;
+  transition:
+    color var(--docs-transition),
+    border-color var(--docs-transition),
+    background-color var(--docs-transition),
+    transform var(--docs-transition);
+}
+
+.docs-module__add-button:hover {
+  border-color: var(--docs-color-primary);
+  color: var(--docs-color-on-primary);
+  background: var(--docs-color-primary);
+  transform: translateY(-1px);
+}
+
+.docs-module__list,
+.docs-module__toc ul,
+.docs-module__search-results {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.docs-module__categories:empty,
+.docs-module__articles:empty {
+  color: var(--docs-color-muted);
+}
+
+.docs-module__list li + li {
+  margin-top: 0.16rem;
+}
+
+/*
+ * Every navigation entry is a row: the link takes the free space and the
+ * administrator controls — publication state, then delete — sit at the end.
+ */
+.docs-module__list-row {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.docs-module__list-row > button[data-action^="select-"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Publication state, only rendered for administrators. */
+.docs-module__publish-state {
+  flex: 0 0 auto;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-inline: 0.15rem;
+  border: 1px solid transparent;
+  border-radius: 50%;
+}
+
+.docs-module__publish-state[data-state="published"] {
+  border-color: color-mix(in srgb, #1a7f47 65%, white);
+  background: #1a7f47;
+}
+
+.docs-module__publish-state[data-state="draft"] {
+  border-color: var(--docs-color-border-strong);
+  background: transparent;
+}
+
+.docs-module__list .docs-module__row-action {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 0;
+  padding: 0.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--docs-radius-small);
+  color: var(--docs-color-muted);
+  line-height: 0;
+  opacity: 0.65;
+}
+
+.docs-module__list .docs-module__delete-button:hover,
+.docs-module__list .docs-module__delete-button:focus-visible {
+  border-color: color-mix(in srgb, var(--docs-color-danger) 35%, white);
+  color: var(--docs-color-danger);
+  background: var(--docs-color-danger-soft);
+  opacity: 1;
+  transform: none;
+}
+
+.docs-module__list button {
+  position: relative;
+  width: 100%;
+  min-height: 1rem;
+  padding: 0.2rem 1rem;
+  /* padding: 0.58rem 0.72rem 0.58rem calc(0.72rem + var(--docs-category-depth, 0) * 0.85rem); */
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--docs-radius);
+  color: var(--docs-color-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: transparent;
+  transition:
+    color var(--docs-transition),
+    border-color var(--docs-transition),
+    background-color var(--docs-transition),
+    box-shadow var(--docs-transition),
+    transform var(--docs-transition);
+}
+
+.docs-module__list button:hover {
+  color: var(--docs-color-primary-active);
+  background: var(--docs-color-primary-soft);
+  transform: translateX(2px);
+}
+
+.docs-module__list button.is-active {
+  border-color: var(--docs-color-primary);
+  color: var(--docs-color-on-primary);
+  font-weight: 650;
+  background: var(--docs-color-primary);
+  box-shadow: 0 0.2rem 0.65rem color-mix(in srgb, var(--docs-color-primary) 30%, transparent);
+}
+
+.docs-module__main {
+  min-width: 0;
+  padding: clamp(1.15rem, 3vw, 2.25rem);
+  outline: 0;
+  background: var(--docs-color-background);
+}
+
+.docs-module__content {
+  width: 100%;
+  max-width: var(--docs-content-width);
+  min-height: 26rem;
+  padding: clamp(1.25rem, 3.5vw, 2.5rem);
+  margin-inline: auto;
+  border: 1px solid var(--docs-color-border);
+  border-radius: var(--docs-radius-large);
+  background: var(--docs-color-surface-raised);
+  box-shadow: var(--docs-shadow-card);
+}
+
+.docs-module__article-header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 1.35rem;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid var(--docs-color-border);
+}
+
+.docs-module__article-header h1,
+.docs-module__editor h1 {
+  margin: 0;
+  color: var(--docs-color-text);
+  font-size: clamp(1.55rem, 3vw, 2.15rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.docs-module__article-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.docs-module__article-header button[data-action="edit"],
+.docs-module__editor-actions button[data-action="cancel-edit"],
+.docs-module__editor-actions button[data-action="cancel-category"] {
+  min-height: 1rem;
+  padding: 0.2rem 1rem;
+  border: 1px solid var(--docs-color-border-strong);
+  border-radius: var(--docs-radius);
+  color: var(--docs-color-text);
+  font-weight: 600;
+  background: var(--docs-color-surface-raised);
+  transition:
+    color var(--docs-transition),
+    border-color var(--docs-transition),
+    background-color var(--docs-transition),
+    transform var(--docs-transition);
+}
+
+.docs-module__article-header button[data-action="edit"]:hover,
+.docs-module__editor-actions button[data-action="cancel-edit"]:hover,
+.docs-module__editor-actions button[data-action="cancel-category"]:hover {
+  border-color: color-mix(in srgb, var(--docs-color-primary) 35%, white);
+  color: var(--docs-color-primary-active);
+  background: var(--docs-color-primary-soft);
+  transform: translateY(-1px);
+}
+
+.docs-module__prose {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: var(--docs-color-text);
+  font-size: 0.975rem;
+  line-height: 1.72;
+}
+
+.docs-module__prose > :first-child {
+  margin-top: 0;
+}
+
+.docs-module__prose > :last-child {
+  margin-bottom: 0;
+}
+
+.docs-module__prose h2,
+.docs-module__prose h3,
+.docs-module__prose h4 {
+  margin: 1.8em 0 0.65em;
+  color: var(--docs-color-text);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  scroll-margin-top: 1rem;
+}
+
+.docs-module__prose h2 {
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--docs-color-border);
+  font-size: 1.45rem;
+}
+
+.docs-module__prose h3 {
+  font-size: 1.2rem;
+}
+
+.docs-module__prose h4 {
+  font-size: 1.05rem;
+}
+
+.docs-module__prose p,
+.docs-module__prose ul,
+.docs-module__prose ol,
+.docs-module__prose blockquote {
+  margin-block: 0.85rem;
+}
+
+/*
+ * Lists.
+ *
+ * The browser's 40px indent hangs the marker well to the left of the text it
+ * belongs to and far from the column every paragraph around it starts at.
+ * 1.5rem brings the marker back beside that column and leaves the item text
+ * only slightly indented, which is what makes a list read as part of the
+ * prose rather than as something bolted onto its side.
+ */
+.docs-module__prose ul,
+.docs-module__prose ol {
+  padding-inline-start: 1.5rem;
+}
+
+/* Numbers are wider than a bullet, and a two-digit one would otherwise reach
+   back past the text column. */
+.docs-module__prose ol {
+  padding-inline-start: 1.9rem;
+}
+
+.docs-module__prose li::marker {
+  color: var(--docs-color-muted);
+}
+
+.docs-module__prose li + li {
+  margin-top: 0.3rem;
+}
+
+/* TipTap wraps every list item's content in a paragraph, so without this each
+   item carries a full paragraph's margins and the list reads as a stack of
+   separate blocks. Items with more than one paragraph keep their separation. */
+.docs-module__prose li > p {
+  margin-block: 0;
+}
+
+.docs-module__prose li > p + p {
+  margin-top: 0.6rem;
+}
+
+.docs-module__prose li > ul,
+.docs-module__prose li > ol {
+  margin-block: 0.3rem;
+}
+
+.docs-module__prose a,
+.docs-module__toc button {
+  color: var(--docs-color-primary);
+}
+
+.docs-module__prose a {
+  font-weight: 500;
+  text-decoration-color: color-mix(in srgb, var(--docs-color-primary) 42%, transparent);
+  text-underline-offset: 0.18em;
+}
+
+.docs-module__prose a:hover {
+  color: var(--docs-color-primary-hover);
+  text-decoration-color: currentColor;
+}
+
+.docs-module__prose blockquote {
+  padding: 0.85rem 1rem;
+  border-left: 0.25rem solid var(--docs-color-primary);
+  border-radius: 0 var(--docs-radius) var(--docs-radius) 0;
+  color: var(--docs-color-muted);
+  background: var(--docs-color-primary-softer);
+}
+
+.docs-module__prose hr {
+  margin-block: 2rem;
+  border: 0;
+  border-top: 1px solid var(--docs-color-border);
+}
+
+.docs-module__prose img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-block: 1.25rem;
+  border: 1px solid var(--docs-color-border);
+  border-radius: var(--docs-radius-large);
+  box-shadow: var(--docs-shadow-small);
+}
+
+.docs-module__prose pre {
+  overflow: auto;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid color-mix(in srgb, var(--docs-color-primary) 28%, #111827);
+  border-radius: var(--docs-radius);
+  color: var(--docs-color-code-text);
+  background: var(--docs-color-code-background);
+  box-shadow: var(--docs-shadow-small);
+}
+
+.docs-module__prose code:not(pre code) {
+  padding: 0.14em 0.38em;
+  border: 1px solid var(--docs-color-border);
+  border-radius: 0.3rem;
+  color: var(--docs-color-primary-active);
+  font-size: 0.9em;
+  background: var(--docs-color-primary-softer);
+}
+
+.docs-module__table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  margin-block: 1.25rem;
+  border: 1px solid var(--docs-color-border);
+  border-radius: var(--docs-radius);
+}
+
+.docs-module__prose table {
+  width: 100%;
+  border-spacing: 0;
+  border-collapse: separate;
+}
+
+/* Only tables carrying widths from the editor get the fixed layout that makes
+   a <colgroup> authoritative. Everything else keeps sizing itself from its
+   content, as it did before column widths were rendered at all. */
+.docs-module__prose table.docs-module__table--sized {
+  table-layout: fixed;
+}
+
+.docs-module__prose th,
+.docs-module__prose td {
+  min-width: 8rem;
+  padding: 0.72rem 0.8rem;
+  border-right: 1px solid var(--docs-color-border);
+  border-bottom: 1px solid var(--docs-color-border);
+  text-align: left;
+}
+
+.docs-module__prose th {
+  color: var(--docs-color-text);
+  font-weight: 650;
+  background: var(--docs-color-primary-softer);
+}
+
+.docs-module__prose tr:last-child > * {
+  border-bottom: 0;
+}
+
+.docs-module__prose tr > *:last-child {
+  border-right: 0;
+}
+
+.docs-module__toc h2 {
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--docs-color-border);
+}
+
+.docs-module__toc ul {
+  padding-top: 0.65rem;
+}
+
+.docs-module__toc li {
+  margin-block: 0.1rem;
+}
+
+.docs-module__toc button {
+  width: 100%;
+  padding: 0.42rem 0.55rem;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--docs-radius-small) var(--docs-radius-small) 0;
+  color: var(--docs-color-muted);
+  line-height: 1.35;
+  text-align: left;
+  text-decoration: none;
+  background: transparent;
+  transition:
+    color var(--docs-transition),
+    border-color var(--docs-transition),
+    background-color var(--docs-transition);
+}
+
+.docs-module__toc button:hover {
+  border-left-color: var(--docs-color-primary);
+  color: var(--docs-color-primary-active);
+  background: var(--docs-color-primary-soft);
+}
+
+.docs-module__toc-level-3,
+.docs-module__toc-level-4,
+.docs-module__toc-level-5,
+.docs-module__toc-level-6 {
+  padding-left: 0.75rem;
+}
+
+.docs-module__editor {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.docs-module__editor > h1 {
+  padding-bottom: 1.25rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid var(--docs-color-border);
+}
+
+.docs-module__editor label,
+.docs-module__field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.docs-module__editor label,
+.docs-module__field-label {
+  color: var(--docs-color-text);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+/*
+ * The editor scrolls inside itself.
+ *
+ * Letting the whole pane scroll instead slid the toolbar off the top as soon
+ * as the document was longer than the viewport, which is most documents.
+ * `overflow: hidden` here also traps `position: sticky`, so pinning the
+ * toolbar was never going to fix it on its own — the scroll has to move into
+ * the writing surface, under a toolbar that is no longer part of it.
+ */
+.docs-module__editor-mount {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  /* Never taller than the screen either: on a phone the cap in rem would
+     otherwise be most of the viewport. */
+  max-height: min(var(--docs-editor-height), 70vh);
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--docs-color-border-strong);
+  border-radius: var(--docs-radius);
+  background: var(--docs-color-surface-raised);
+  transition:
+    border-color var(--docs-transition),
+    box-shadow var(--docs-transition);
+}
+
+.docs-module__editor-surface {
+  min-height: 0;
+  overflow-y: auto;
+  /* Reaching the end of the document should not start scrolling the pane
+     behind it. */
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+
+.docs-module__editor-mount:focus-within {
+  border-color: var(--docs-color-primary);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--docs-color-primary) 13%, transparent);
+}
+
+/* Inside the module the toolbars already sit outside the scrolling surface;
+   this keeps them pinned for a host that mounts the editor on its own, in an
+   ordinary scrolling page. */
+.docs-module__toolbars {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  background: var(--docs-color-surface);
+}
+
+.docs-module__toolbar {
+  display: flex;
+  gap: 0.18rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 0.45rem;
+  border-bottom: 1px solid var(--docs-color-border);
+  background: var(--docs-color-surface);
+}
+
+/* The table row is tinted so it reads as a context strip for the table under
+   the caret, not as more of the always-there formatting toolbar. */
+.docs-module__toolbar--table {
+  gap: 0.14rem;
+  padding-block: 0.35rem;
+  background: var(--docs-color-primary-softer);
+}
+
+.docs-module__toolbar--table[hidden] {
+  display: none;
+}
+
+.docs-module__toolbar-group-label {
+  padding-inline: 0.35rem 0.1rem;
+  color: var(--docs-color-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.docs-module__toolbar-separator {
+  width: 1px;
+  height: 1.4rem;
+  margin: 0 0.25rem;
+  background: var(--docs-color-border-strong);
+}
+
+.docs-module__toolbar-button {
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--docs-radius-small);
+  color: var(--docs-color-muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1;
+  background: transparent;
+  transition:
+    color var(--docs-transition),
+    border-color var(--docs-transition),
+    background-color var(--docs-transition);
+}
+
+.docs-module__toolbar-button:hover:not(:disabled) {
+  color: var(--docs-color-primary-active);
+  background: var(--docs-color-primary-soft);
+}
+
+.docs-module__toolbar-button.is-active {
+  border-color: color-mix(in srgb, var(--docs-color-primary) 25%, white);
+  color: var(--docs-color-primary-active);
+  background: var(--docs-color-primary-soft);
+}
+
+.docs-module__editable {
+  min-height: 18rem;
+  padding: 1.15rem 1.25rem;
+  outline: none;
+  color: var(--docs-color-text);
+  font-size: 0.975rem;
+  line-height: 1.7;
+}
+
+.docs-module__editable:focus-visible {
+  outline: 0;
+}
+
+.docs-module__editable p.is-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--docs-color-muted);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ProseMirror wraps an editable table in .tableWrapper. Without a scroll
+   container here, a table wider than the editor pushes the whole surface
+   sideways and the toolbar goes with it. */
+.docs-module__editable .tableWrapper {
+  overflow-x: auto;
+  margin-block: 1.1rem;
+}
+
+.docs-module__editable table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* The column resizer is an empty div ProseMirror drops into the cell you are
+   dragging. Unstyled it is invisible, so resizing a column meant hunting for
+   an unmarked hit area along the border. */
+.docs-module__editable .column-resize-handle {
+  position: absolute;
+  z-index: 20;
+  top: 0;
+  right: -1px;
+  bottom: -1px;
+  width: 3px;
+  background: var(--docs-color-primary);
+  pointer-events: none;
+}
+
+.docs-module__editable.resize-cursor {
+  cursor: col-resize;
+}
+
+.docs-module__editable th,
+.docs-module__editable td {
+  position: relative;
+  padding: 0.5rem 0.62rem;
+  border: 1px solid var(--docs-color-border);
+  vertical-align: top;
+}
+
+.docs-module__editable th {
+  font-weight: 650;
+  text-align: left;
+  background: var(--docs-color-primary-softer);
+}
+
+.docs-module__editable .selectedCell::after {
+  position: absolute;
+  z-index: 2;
+  background: color-mix(in srgb, var(--docs-color-primary) 16%, transparent);
+  content: "";
+  pointer-events: none;
+  inset: 0;
+}
+
+.docs-module__editable .ProseMirror-selectednode {
+  outline: 2px solid var(--docs-color-primary);
+  outline-offset: 2px;
+}
+
+.docs-module__editable img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--docs-radius);
+}
+
+.docs-module__editor-actions {
+  display: flex;
+  gap: 0.65rem;
+  justify-content: flex-end;
+  padding-top: 1.15rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--docs-color-border);
+}
+
+.docs-module__search-results li:last-child button {
+  border-bottom: 0;
+}
+
+.docs-module__search-results button {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 0.25rem;
+  overflow: hidden;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  border-bottom: 1px solid var(--docs-color-border);
+  border-radius: var(--docs-radius-small);
+  text-align: left;
+  background: transparent;
+  transition:
+    color var(--docs-transition),
+    background-color var(--docs-transition),
+    transform var(--docs-transition);
+}
+
+.docs-module__search-results button:hover {
+  color: var(--docs-color-primary-active);
+  background: var(--docs-color-primary-soft);
+  transform: translateX(2px);
+}
+
+.docs-module__search-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  min-width: 0;
+  color: var(--docs-color-text);
+  font-size: 0.975rem;
+}
+
+/* The title is one flex item, never one per highlighted fragment: otherwise
+   the gap opens up inside a partially matched word. */
+.docs-module__search-title-text {
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The snippet is deliberately kept to a single line: a result list is for
+   scanning, and a wrapped paragraph per hit pushed everything off screen. */
+.docs-module__search-snippet {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--docs-color-muted) 78%, transparent);
+  font-size: 0.8rem;
+  /* Roomy enough for the highlight band to sit inside the clipped line. */
+  line-height: 1.55;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The hit is painted as a solid band behind the word, descenders included, so
+   it reads as a highlighter stroke rather than as coloured text. */
+.docs-module__search-mark {
+  /* Vertical padding stays under the line box: the snippet clips its overflow
+     to hold one line, and a taller band would lose its rounded edges. */
+  padding: 0.05em 0.2em;
+  border-radius: 0.2rem;
+  color: inherit;
+  font-weight: 600;
+  background-color: color-mix(in srgb, var(--docs-color-primary) 30%, transparent);
+  /* Keeps the band whole when a hit falls across a line break. */
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.docs-module__search-snippet .docs-module__search-mark {
+  color: var(--docs-color-text);
+  background-color: color-mix(in srgb, var(--docs-color-primary) 24%, transparent);
+}
+
+.docs-module__search-badge {
+  flex: none;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--docs-color-border);
+  border-radius: 0.75rem;
+  color: color-mix(in srgb, var(--docs-color-muted) 70%, transparent);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: transparent;
+}
+
+.docs-module__search-badge--content {
+  justify-self: start;
+}
+
+.docs-module__empty {
+  display: grid;
+  min-height: 20rem;
+  place-items: center;
+  color: var(--docs-color-muted);
+  font-size: 0.975rem;
+  text-align: center;
+}
+
+.docs-module__menu {
+  display: none;
+  min-height: 1rem;
+  padding: 0.2rem 1rem;
+  border: 1px solid var(--docs-color-border-strong);
+  border-radius: var(--docs-radius);
+  color: var(--docs-color-primary-active);
+  font-weight: 600;
+  background: var(--docs-color-primary-soft);
+}
+
+.docs-module__visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.docs-module[aria-busy] .docs-module__main {
+  opacity: 0.62;
+  pointer-events: none;
+  transition: opacity var(--docs-transition);
+}
+
+@media (max-width: 68rem) {
+  .docs-module__layout {
+    grid-template-columns: var(--docs-navigation-width) minmax(0, 1fr);
+  }
+
+  .docs-module__toc {
+    display: none;
+  }
+}
+
+@media (max-width: 48rem) {
+  .docs-module {
+    border-radius: var(--docs-radius);
+  }
+
+  .docs-module__brand-text {
+    display: none;
+  }
+
+  .docs-module__menu {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .docs-module__layout {
+    position: relative;
+    display: block;
+  }
+
+  .docs-module__navigation {
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 5;
+    display: none;
+    width: min(88vw, var(--docs-navigation-width));
+    height: 100%;
+    border-right-color: var(--docs-color-border-strong);
+    box-shadow: var(--docs-shadow-floating);
+  }
+
+  .docs-module__navigation.is-open {
+    display: block;
+  }
+
+  .docs-module__header,
+  .docs-module__search {
+    align-items: stretch;
+  }
+
+  .docs-module__header {
+    padding-inline: 0.85rem;
+  }
+
+  .docs-module__search button {
+    display: none;
+  }
+
+  .docs-module__main {
+    height: 100%;
+    padding: 1rem;
+  }
+
+  .docs-module__content {
+    min-height: 24rem;
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 34rem) {
+  .docs-module__article-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .docs-module__article-actions,
+  .docs-module__editor-actions {
+    width: 100%;
+  }
+
+  .docs-module__article-actions button,
+  .docs-module__editor-actions button {
+    flex: 1;
+  }
+
+  .docs-module__editor-actions {
+    flex-direction: column-reverse;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .docs-module *,
+  .docs-module *::before,
+  .docs-module *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

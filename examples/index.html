@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Databis Docs example</title>
+    <link rel="stylesheet" href="../src/style.css">
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      databis-docs {
+        --docs-height: 100dvh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="documentation"></div>
+
+    <script type="module">
+      import { createDocsModule } from '../dist/index.js'
+
+      const testing = true
+      const useGlobalStorage = new URLSearchParams(location.search).get('storage') === 'global'
+      const initialTestingData = {
+        categories: [{
+          id: 1,
+          parent_id: null,
+          name: 'Primeros pasos',
+          slug: 'primeros-pasos',
+          description: 'Contenido local para probar el componente.',
+          order: 0,
+          is_published: true,
+          updated_at: '2026-07-28T10:00:00.000Z'
+        }],
+        articles: [{
+          id: 1,
+          doc_category_id: 1,
+          title: 'Ejemplo local',
+          slug: 'ejemplo-local',
+          excerpt: 'Este artículo se lee y se edita sin realizar consultas HTTP.',
+          order: 0,
+          locale: 'es',
+          is_published: true,
+          published_at: '2026-07-28T10:00:00.000Z',
+          updated_at: '2026-07-28T10:00:00.000Z',
+          content: {
+            type: 'doc',
+            content: [
+              {
+                type: 'heading',
+                attrs: { level: 2 },
+                content: [{ type: 'text', text: 'Modo testing' }]
+              },
+              {
+                type: 'paragraph',
+                content: [{
+                  type: 'text',
+                  text: 'Los cambios se guardan en el navegador y no se envían al backend.'
+                }]
+              }
+            ]
+          }
+        }]
+      }
+
+      for (let categoryIndex = 2; categoryIndex <= 24; categoryIndex += 1) {
+        initialTestingData.categories.push({
+          id: categoryIndex,
+          parent_id: null,
+          name: `Categoría ${categoryIndex}`,
+          slug: `categoria-${categoryIndex}`,
+          description: 'Categoría añadida para comprobar el scroll interno.',
+          order: categoryIndex,
+          is_published: true,
+          updated_at: '2026-07-28T10:00:00.000Z'
+        })
+      }
+
+      for (let articleIndex = 2; articleIndex <= 24; articleIndex += 1) {
+        initialTestingData.articles.push({
+          id: articleIndex,
+          doc_category_id: 1,
+          title: `Artículo ${articleIndex}`,
+          slug: `articulo-${articleIndex}`,
+          excerpt: 'Artículo añadido para comprobar el scroll interno.',
+          order: articleIndex,
+          locale: 'es',
+          is_published: true,
+          published_at: '2026-07-28T10:00:00.000Z',
+          updated_at: '2026-07-28T10:00:00.000Z',
+          content: {
+            type: 'doc',
+            content: [{
+              type: 'paragraph',
+              content: [{ type: 'text', text: `Contenido del artículo ${articleIndex}.` }]
+            }]
+          }
+        })
+      }
+
+      for (let sectionIndex = 2; sectionIndex <= 28; sectionIndex += 1) {
+        initialTestingData.articles[0].content.content.push({
+          type: 'heading',
+          attrs: { level: 2 },
+          content: [{ type: 'text', text: `Sección ${sectionIndex}` }]
+        })
+        initialTestingData.articles[0].content.content.push({
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            text: 'Texto de validación para comprobar el desplazamiento interno del artículo.'
+          }]
+        })
+      }
+
+      window.docsTestingData = window.docsTestingData || initialTestingData
+      const docs = createDocsModule(document.querySelector('#documentation'), {
+        testing,
+        locale: 'es',
+        primaryColor: '#3176A1',
+        syncHash: true,
+        testingStorage: useGlobalStorage ? 'global' : 'localStorage',
+        testingStorageKey: '@databis/docs-module/example-scroll',
+        testingGlobalKey: 'docsTestingData',
+        testingData: window.docsTestingData
+      })
+
+      console.info(
+        `Databis Docs testing: contenido guardado en ${
+          useGlobalStorage ? 'window.docsTestingData' : 'localStorage'
+        }. Añade ?storage=global a la URL para usar la variable global.`
+      )
+
+      docs.addEventListener('docs:error', (event) => {
+        console.error('Documentation error:', event.detail.error)
+      })
+    </script>
+  </body>
+</html>
