@@ -1,6 +1,6 @@
 {
     "name": "@databis/docs-module",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Framework-agnostic documentation UI and API client for databis/laravel-docs-module",
     "type": "module",
     "main": "dist/index.cjs",
