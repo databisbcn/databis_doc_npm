@@ -188,6 +188,90 @@
   resize: vertical;
 }
 
+/* Picker on the left, the list it feeds on the right. They wrap onto two rows
+   when the form gets narrow, which is why the select carries a min-width
+   instead of a fixed one. */
+.docs-module__roles-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.docs-module__editor .docs-module__roles-select {
+  flex: 0 1 14rem;
+  min-width: 10rem;
+  width: auto;
+}
+
+.docs-module__roles-list {
+  flex: 1 1 12rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 0.35rem;
+  min-height: 2.6rem;
+  margin: 0;
+  padding: 0.4rem;
+  list-style: none;
+  border: 1px dashed var(--docs-color-border-strong);
+  border-radius: var(--docs-radius);
+}
+
+.docs-module__roles-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.6rem;
+  border-radius: 999px;
+  color: var(--docs-color-text);
+  background: var(--docs-color-surface-raised);
+  border: 1px solid var(--docs-color-border-strong);
+  font-size: 0.9em;
+}
+
+.docs-module__roles-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  background: transparent;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity var(--docs-transition), background-color var(--docs-transition);
+}
+
+.docs-module__roles-remove:hover,
+.docs-module__roles-remove:focus-visible {
+  opacity: 1;
+  background: var(--docs-color-border-strong);
+}
+
+/* "Everyone" is a real state, not an empty one, so it is spelled out rather
+   than left as a blank box. */
+.docs-module__roles-empty {
+  align-self: center;
+  padding: 0.2rem 0.4rem;
+  color: var(--docs-color-muted);
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+.docs-module__hint {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--docs-color-muted);
+  font-size: 0.82em;
+  font-weight: 400;
+}
+
 .docs-module__search input::placeholder,
 .docs-module__editor input::placeholder,
 .docs-module__editor textarea::placeholder {
@@ -400,6 +484,15 @@
   color: var(--docs-color-muted);
   line-height: 0;
   opacity: 0.65;
+}
+
+.docs-module__list .docs-module__edit-button:hover,
+.docs-module__list .docs-module__edit-button:focus-visible {
+  border-color: var(--docs-color-border-strong);
+  color: var(--docs-color-primary-active);
+  background: var(--docs-color-primary-soft);
+  opacity: 1;
+  transform: none;
 }
 
 .docs-module__list .docs-module__delete-button:hover,

@@ -26,6 +26,8 @@ export interface DocsCategory extends DocsRecord {
   articles_count?: number;
   depth?: number;
   children?: DocsCategory[];
+  /** Roles this category is restricted to. Empty means visible to everyone. */
+  visible_roles?: string[];
   can?: DocsResourceActions;
 }
 
@@ -42,6 +44,11 @@ export interface DocsArticle extends DocsRecord {
   content?: TiptapDocument;
   updated_at?: string;
   category?: Pick<DocsCategory, 'id' | 'name' | 'slug'> | null;
+  /**
+   * Roles this article is restricted to. Empty means visible to everyone.
+   * Only sent on the single-article endpoints, not in listings.
+   */
+  visible_roles?: string[];
   can?: DocsResourceActions;
 }
 
@@ -84,11 +91,19 @@ export interface DocsLocalData {
 export interface DocsCapabilities {
   authenticated: boolean;
   is_admin: boolean;
+  /** Whether the backend has visibility-by-role switched on. */
+  roles_enabled?: boolean;
   can: {
     create_category: boolean;
     create_article: boolean;
     view_drafts: boolean;
   };
+}
+
+/** One entry of the "who sees this" dropdown, as the backend describes it. */
+export interface DocsRoleOption {
+  value: string;
+  label: string;
 }
 
 export interface DocsModuleOptions {
@@ -156,6 +171,7 @@ export interface DocsCategoryInput extends DocsRecord {
   description?: string | null;
   order?: number;
   is_published?: boolean;
+  roles?: string[];
 }
 
 export interface DocsArticleInput extends DocsRecord {
@@ -168,6 +184,8 @@ export interface DocsArticleInput extends DocsRecord {
   is_published?: boolean;
   content?: TiptapDocument;
   updated_at?: string;
+  /** Omit to leave the assignment untouched; [] makes it public again. */
+  roles?: string[];
 }
 
 export interface DocsApiErrorOptions {
@@ -282,8 +300,15 @@ export interface DocsClient {
     options?: DocsRequestOptions
   ): Promise<unknown>;
   getCapabilities(options?: DocsRequestOptions): Promise<unknown>;
+  /** Optional: the local worker has no roles to offer. */
+  getRoles?(options?: DocsRequestOptions): Promise<unknown>;
   search(term: string, options?: DocsRequestOptions): Promise<unknown>;
   createCategory(
+    category: DocsCategoryInput,
+    options?: DocsRequestOptions
+  ): Promise<unknown>;
+  updateCategory(
+    id: number,
     category: DocsCategoryInput,
     options?: DocsRequestOptions
   ): Promise<unknown>;
@@ -301,6 +326,7 @@ export interface DocsClient {
     options?: DocsRequestOptions
   ): Promise<unknown>;
   uploadImage(file: File, options?: DocsRequestOptions): Promise<unknown>;
+  deleteImage(id: number, options?: DocsRequestOptions): Promise<unknown>;
 }
 
 export type LocalCounterName = keyof DocsLocalData['counters'];

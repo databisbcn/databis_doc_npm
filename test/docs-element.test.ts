@@ -89,6 +89,17 @@ async function settle(): Promise<void> {
   await waitForTimeout(20);
 }
 
+/** Picks a role the way a user would: choose it, and the list takes it. */
+function addRole(select: HTMLSelectElement, value: string): void {
+  select.value = value;
+  select.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function rolesOn(list: HTMLElement): string[] {
+  return Array.from(list.querySelectorAll<HTMLElement>('.docs-module__roles-item[data-role]'))
+    .map((item) => item.dataset.role || '');
+}
+
 function mountDocs(fetchImplementation: TestFetch): DatabisDocsElement {
   const element = document.createElement('databis-docs');
   element.options = {
@@ -814,4 +825,481 @@ test('a term below the minimum length clears the results', async () => {
 
   await element.runSearch('in');
   assert.equal(element.querySelector('.docs-module__search-results'), null);
+});
+
+test('the visibility field is only rendered when the backend offers roles', async () => {
+  // Off is the default, and the payload must then omit `roles` entirely:
+  // sending [] would make the backend wipe an existing assignment.
+  const requests: CapturedRequest[] = [];
+  const fetchImplementation: TestFetch = async (url, options = {}) => {
+    requests.push({ url, options });
+
+    if (url.endsWith('/categories?locale=en')) {
+      return jsonResponse(categoryResponse());
+    }
+
+    if (url.endsWith('/me/capabilities')) {
+      return jsonResponse(adminCapabilities());
+    }
+
+    if (url.endsWith('/articles') && options.method === 'POST') {
+      return jsonResponse({ data: createdArticle() }, 201);
+    }
+
+    return jsonResponse({ data: [] });
+  };
+  const element = mountDocs(fetchImplementation);
+
+  await settle();
+  assert.equal(requests.some(({ url }) => url.endsWith('/roles')), false);
+
+  element.querySelector<HTMLButtonElement>('[data-action="create-article"]')?.click();
+  const form = element.querySelector<HTMLFormElement>('[data-form="article"]');
+  assert.ok(form);
+  assert.equal(form.querySelector(".docs-module__roles"), null);
+
+  (form.elements.namedItem('title') as HTMLInputElement).value = 'New guide';
+  form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await settle();
+
+  const created = requests.find(({ url, options }) => (
+    url.endsWith('/articles') && options.method === 'POST'
+  ));
+  assert.ok(created);
+  assert.equal('roles' in JSON.parse(String(created.options.body)), false);
+});
+
+test('the selected roles are sent with the article', async () => {
+  const requests: CapturedRequest[] = [];
+  const fetchImplementation: TestFetch = async (url, options = {}) => {
+    requests.push({ url, options });
+
+    if (url.endsWith('/categories?locale=en')) {
+      return jsonResponse(categoryResponse());
+    }
+
+    if (url.endsWith('/me/capabilities')) {
+      return jsonResponse({
+        data: { ...adminCapabilities().data, roles_enabled: true }
+      });
+    }
+
+    if (url.endsWith('/roles')) {
+      return jsonResponse({
+        data: [
+          { value: '1', label: 'Sales' },
+          { value: '2', label: 'Accounting' }
+        ]
+      });
+    }
+
+    if (url.endsWith('/articles') && options.method === 'POST') {
+      return jsonResponse({ data: createdArticle() }, 201);
+    }
+
+    return jsonResponse({ data: [] });
+  };
+  const element = mountDocs(fetchImplementation);
+
+  await settle();
+
+  element.querySelector<HTMLButtonElement>('[data-action="create-article"]')?.click();
+  const form = element.querySelector<HTMLFormElement>('[data-form="article"]');
+  assert.ok(form);
+
+  const select = form.querySelector<HTMLSelectElement>('.docs-module__roles-select');
+  const list = form.querySelector<HTMLElement>('.docs-module__roles-list');
+  assert.ok(select);
+  assert.ok(list);
+
+  // Empty list: the placeholder plus every role, and the state spelled out.
+  assert.deepEqual(
+    Array.from(select.options).map((option) => option.textContent),
+    ['Add role…', 'Sales', 'Accounting']
+  );
+  assert.equal(list.querySelector('.docs-module__roles-empty')?.textContent, 'Everyone');
+
+  addRole(select, '2');
+
+  // The list is the state, and what is on it leaves the dropdown.
+  assert.deepEqual(rolesOn(list), ['2']);
+  assert.deepEqual(
+    Array.from(select.options).map((option) => option.textContent),
+    ['Add role…', 'Sales']
+  );
+  assert.equal(list.querySelector('.docs-module__roles-empty'), null);
+
+  (form.elements.namedItem('title') as HTMLInputElement).value = 'New guide';
+  form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await settle();
+
+  const created = requests.find(({ url, options }) => (
+    url.endsWith('/articles') && options.method === 'POST'
+  ));
+  assert.ok(created);
+  assert.deepEqual(JSON.parse(String(created.options.body)).roles, ['2']);
+});
+
+test('a role taken off the list is not sent, and comes back to the dropdown', async () => {
+  const requests: CapturedRequest[] = [];
+  const article: DocsArticle = {
+    ...createdArticle(),
+    title: 'Payroll',
+    slug: 'payroll',
+    is_published: true,
+    visible_roles: ['1', '2']
+  };
+  const fetchImplementation: TestFetch = async (url, options = {}) => {
+    requests.push({ url, options });
+
+    if (url.endsWith('/categories?locale=en')) {
+      return jsonResponse(categoryResponse());
+    }
+
+    if (url.endsWith('/me/capabilities')) {
+      return jsonResponse({
+        data: { ...adminCapabilities().data, roles_enabled: true }
+      });
+    }
+
+    if (url.endsWith('/roles')) {
+      return jsonResponse({
+        data: [
+          { value: '1', label: 'Sales' },
+          { value: '2', label: 'Accounting' }
+        ]
+      });
+    }
+
+    if (url.includes('/categories/guides/articles/payroll')) {
+      return jsonResponse({ data: article });
+    }
+
+    if (url.includes('/categories/guides/articles?')) {
+      return jsonResponse({ data: [article] });
+    }
+
+    if (url.endsWith('/articles/25') && options.method === 'PUT') {
+      return jsonResponse({ data: article });
+    }
+
+    return jsonResponse({ data: [] });
+  };
+  const element = mountDocs(fetchImplementation);
+
+  await settle();
+  await element.selectArticle('payroll');
+
+  element.querySelector<HTMLButtonElement>('[data-action="edit"]')?.click();
+  const form = element.querySelector<HTMLFormElement>('[data-form="article"]');
+  assert.ok(form);
+
+  const list = form.querySelector<HTMLElement>('.docs-module__roles-list');
+  const select = form.querySelector<HTMLSelectElement>('.docs-module__roles-select');
+  assert.ok(list);
+  assert.ok(select);
+
+  // The article's own roles start on the list, so the dropdown has nothing
+  // left to offer.
+  assert.deepEqual(rolesOn(list), ['1', '2']);
+  assert.equal(select.disabled, true);
+
+  list.querySelector<HTMLButtonElement>('[data-action="remove-role"][data-role="1"]')?.click();
+
+  assert.deepEqual(rolesOn(list), ['2']);
+  assert.equal(select.disabled, false);
+  assert.deepEqual(
+    Array.from(select.options).map((option) => option.textContent),
+    ['Add role…', 'Sales']
+  );
+
+  form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await settle();
+
+  const saved = requests.find(({ url, options }) => (
+    url.endsWith('/articles/25') && options.method === 'PUT'
+  ));
+  assert.ok(saved);
+  assert.deepEqual(JSON.parse(String(saved.options.body)).roles, ['2']);
+});
+
+/** The article the upload tests edit, with one picture already in it. */
+function articleWithImage(): DocsArticle {
+  return {
+    ...createdArticle(),
+    title: 'Payroll',
+    slug: 'payroll',
+    is_published: true,
+    content: {
+      type: 'doc',
+      content: [{ type: 'image', attrs: { src: 'docs-images/2026/09/kept.webp' } }]
+    }
+  };
+}
+
+function uploadFetch(requests: CapturedRequest[], article: DocsArticle): TestFetch {
+  let nextId = 100;
+
+  return async (url, options = {}) => {
+    requests.push({ url, options });
+
+    if (url.endsWith('/categories?locale=en')) {
+      return jsonResponse(categoryResponse());
+    }
+
+    if (url.endsWith('/me/capabilities')) {
+      return jsonResponse(adminCapabilities());
+    }
+
+    if (url.endsWith('/images') && options.method === 'POST') {
+      const id = nextId++;
+      return jsonResponse({
+        data: { id, path: `docs-images/2026/09/upload-${id}.webp`, url: null }
+      }, 201);
+    }
+
+    if (url.includes('/images/') && options.method === 'DELETE') {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.includes('/categories/guides/articles/payroll')) {
+      return jsonResponse({ data: article });
+    }
+
+    if (url.includes('/categories/guides/articles?')) {
+      return jsonResponse({ data: [article] });
+    }
+
+    if (url.endsWith('/articles/25') && options.method === 'PUT') {
+      return jsonResponse({ data: article });
+    }
+
+    return jsonResponse({ data: [] });
+  };
+}
+
+function deletedImageIds(requests: CapturedRequest[]): string[] {
+  return requests
+    .filter(({ url, options }) => options.method === 'DELETE' && url.includes('/images/'))
+    .map(({ url }) => url.split('/').pop() || '');
+}
+
+test('cancelling an edit deletes the images uploaded during it', async () => {
+  // The upload happens the moment the file is dropped, so cancelling would
+  // otherwise leave the file on disk with nothing pointing at it.
+  const requests: CapturedRequest[] = [];
+  const element = mountDocs(uploadFetch(requests, articleWithImage()));
+
+  await settle();
+  await element.selectArticle('payroll');
+
+  element.querySelector<HTMLButtonElement>('[data-action="edit"]')?.click();
+
+  const uploaded = await element.uploadImage(new File(['x'], 'shot.png', { type: 'image/png' }));
+  assert.equal(uploaded.id, 100);
+
+  element.querySelector<HTMLButtonElement>('[data-action="cancel-edit"]')?.click();
+  await settle();
+
+  assert.deepEqual(deletedImageIds(requests), ['100']);
+});
+
+test('cancelling leaves the pictures the stored article still uses alone', async () => {
+  const requests: CapturedRequest[] = [];
+  const element = mountDocs(uploadFetch(requests, articleWithImage()));
+
+  await settle();
+  await element.selectArticle('payroll');
+
+  // Opening and closing the editor without uploading anything must not cost a
+  // single request, and must certainly not touch the existing picture.
+  element.querySelector<HTMLButtonElement>('[data-action="edit"]')?.click();
+  element.querySelector<HTMLButtonElement>('[data-action="cancel-edit"]')?.click();
+  await settle();
+
+  assert.deepEqual(deletedImageIds(requests), []);
+});
+
+test('an upload that never reached the document is collected on save too', async () => {
+  const requests: CapturedRequest[] = [];
+  const element = mountDocs(uploadFetch(requests, articleWithImage()));
+
+  await settle();
+  await element.selectArticle('payroll');
+
+  element.querySelector<HTMLButtonElement>('[data-action="edit"]')?.click();
+
+  // Two uploads, and the document that gets saved only keeps the second one:
+  // the first was inserted and taken out again before saving, which is
+  // invisible to the backend.
+  await element.uploadImage(new File(['x'], 'discarded.png', { type: 'image/png' }));
+  const kept = await element.uploadImage(new File(['x'], 'kept.png', { type: 'image/png' }));
+
+  const form = element.querySelector<HTMLFormElement>('[data-form="article"]');
+  assert.ok(form);
+
+  // Stand in for the editor's own document: what the user left in it.
+  (element as unknown as {
+    _editor: { getJSON(): unknown; destroy(): void } | null;
+  })._editor = {
+    getJSON: () => ({
+      type: 'doc',
+      content: [{ type: 'image', attrs: { src: kept.path } }]
+    }),
+    destroy: () => {}
+  };
+
+  form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await settle();
+  await settle();
+
+  // The save has to have gone through, or the assertion below would pass for
+  // the wrong reason.
+  const saved = requests.find(({ url, options }) => (
+    url.endsWith('/articles/25') && options.method === 'PUT'
+  ));
+  assert.ok(saved);
+  assert.deepEqual(deletedImageIds(requests), ['100']);
+});
+
+/** A two-level tree, so the cycle guard has something to exclude. */
+function categoryTree() {
+  return {
+    data: [{
+      id: 10,
+      parent_id: null,
+      name: 'Guides',
+      slug: 'guides',
+      description: 'The old description',
+      visible_roles: [],
+      can: { update: true, delete: true },
+      children: [{
+        id: 11,
+        parent_id: 10,
+        name: 'Advanced',
+        slug: 'advanced',
+        visible_roles: [],
+        can: { update: true, delete: true },
+        children: []
+      }]
+    }]
+  };
+}
+
+function categoryFetch(requests: CapturedRequest[]): TestFetch {
+  return async (url, options = {}) => {
+    requests.push({ url, options });
+
+    if (url.endsWith('/categories?locale=en')) {
+      return jsonResponse(categoryTree());
+    }
+
+    if (url.endsWith('/me/capabilities')) {
+      return jsonResponse(adminCapabilities());
+    }
+
+    if (url.endsWith('/categories/10') && options.method === 'PUT') {
+      return jsonResponse({ data: { ...categoryTree().data[0], name: 'Handbook' } });
+    }
+
+    return jsonResponse({ data: [] });
+  };
+}
+
+test('a category can be edited from the button beside its bin', async () => {
+  const requests: CapturedRequest[] = [];
+  const element = mountDocs(categoryFetch(requests));
+
+  await settle();
+
+  const edit = element.querySelector<HTMLButtonElement>(
+    '[data-action="edit-category"][data-id="10"]'
+  );
+  assert.ok(edit);
+
+  edit.click();
+
+  const form = element.querySelector<HTMLFormElement>('[data-form="category"]');
+  assert.ok(form);
+  assert.equal(form.dataset.id, '10');
+
+  // Prefilled, or it would be a "create" form wearing an edit heading.
+  assert.equal((form.elements.namedItem('name') as HTMLInputElement).value, 'Guides');
+  assert.equal(
+    (form.elements.namedItem('description') as HTMLTextAreaElement).value,
+    'The old description'
+  );
+
+  (form.elements.namedItem('name') as HTMLInputElement).value = 'Handbook';
+  form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await settle();
+
+  const saved = requests.find(({ url, options }) => (
+    url.endsWith('/categories/10') && options.method === 'PUT'
+  ));
+  assert.ok(saved);
+
+  const payload = JSON.parse(String(saved.options.body));
+  assert.equal(payload.name, 'Handbook');
+  assert.equal(payload.parent_id, null);
+
+  // Not on this form, and sending it would republish a retired category.
+  assert.equal('is_published' in payload, false);
+
+  // A POST would mean a duplicate category rather than an edit.
+  assert.equal(
+    requests.some(({ url, options }) => url.endsWith('/categories') && options.method === 'POST'),
+    false
+  );
+});
+
+test('a category cannot be moved under itself or under its own children', async () => {
+  const requests: CapturedRequest[] = [];
+  const element = mountDocs(categoryFetch(requests));
+
+  await settle();
+
+  element.querySelector<HTMLButtonElement>('[data-action="edit-category"][data-id="10"]')?.click();
+
+  const parents = element.querySelector<HTMLSelectElement>('[name="parent_id"]');
+  assert.ok(parents);
+
+  // Only the root option is left: the category itself and its child are both
+  // out, which is the whole tree here.
+  assert.deepEqual(Array.from(parents.options).map((option) => option.value), ['']);
+
+  // The child, on the other hand, may still be moved to the root or left
+  // where it is.
+  element.querySelector<HTMLButtonElement>('[data-action="cancel-category"]')?.click();
+  element.querySelector<HTMLButtonElement>('[data-action="edit-category"][data-id="11"]')?.click();
+
+  const childParents = element.querySelector<HTMLSelectElement>('[name="parent_id"]');
+  assert.ok(childParents);
+  assert.deepEqual(Array.from(childParents.options).map((option) => option.value), ['', '10']);
+  assert.equal(childParents.value, '10');
+});
+
+test('the edit button is absent when the category cannot be updated', async () => {
+  const fetchImplementation: TestFetch = async (url) => {
+    if (url.endsWith('/categories?locale=en')) {
+      const tree = categoryTree();
+      tree.data[0].can = { update: false, delete: true };
+      return jsonResponse(tree);
+    }
+
+    if (url.endsWith('/me/capabilities')) {
+      return jsonResponse(adminCapabilities());
+    }
+
+    return jsonResponse({ data: [] });
+  };
+  const element = mountDocs(fetchImplementation);
+
+  await settle();
+
+  assert.equal(
+    element.querySelector('[data-action="edit-category"][data-id="10"]'),
+    null
+  );
+  assert.ok(element.querySelector('[data-action="delete-category"][data-id="10"]'));
 });

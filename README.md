@@ -375,6 +375,18 @@ same TipTap form. It supports bold, italic, strikethrough, inline code,
 headings, lists, quotes, code blocks, links, images, tables, dividers and
 undo/redo. The category, title, excerpt and document can all be changed.
 
+### Who sees the article
+
+When capabilities come back with `roles_enabled: true`, the element also fetches
+`GET /roles` and both forms — article and category — grow a **Visible to**
+multiple select. Leave it empty and everyone sees the document; pick one or more
+roles and only readers holding one of them do. Anyone who may edit the
+documentation goes on seeing all of it regardless.
+
+Nothing is rendered and no `roles` key is sent when the backend has the feature
+off, so an omitted field never wipes an existing assignment. See the backend
+README for how the list of roles is configured.
+
 The writing surface scrolls inside its own frame, capped by
 `--docs-editor-height` (`31.25rem`, and never more than `70vh`), so the toolbar
 stays in place however long the document gets. Letting the pane scroll instead
@@ -422,6 +434,24 @@ that resolved against the *current page*, so an article opened at
 This is also why pasting has to be intercepted: left alone, a pasted screenshot
 becomes a base64 data URI, the backend sanitizer rejects `data:` as a scheme,
 and the image silently disappears on save.
+
+#### Uploads that go nowhere
+
+The upload happens the moment the file is dropped, which is long before
+anything is saved — and possibly before the article exists. So the element
+remembers what it uploaded while the editor was open, and on the way out
+deletes whatever did not end up in the document that got stored:
+
+- **Cancel** — every upload of that session goes, since cancelling returns to
+  the article as it stands on the server.
+- **Save** — the ones that were inserted and then taken out again before
+  saving. The backend handles the rest: it compares the two versions of the
+  article and collects what the save dropped.
+
+Nothing uploaded means nothing requested, so the ordinary edit costs no extra
+round trip. Deletions are fire-and-forget: the article is already saved or
+already discarded by then, and `docs:prune-images` remains the backstop for
+anything that outlives its request — a closed tab, a lost connection.
 
 ### Using the editor on its own
 
@@ -507,7 +537,3 @@ npm run check
 ```
 
 ## License
-
-This project is licensed under [CC BY-NC-SA 4.0](LICENSE) — Attribution-NonCommercial-ShareAlike.
-You may share and adapt this work for non-commercial purposes with attribution, under the same license.
-For commercial use, please contact Databis to obtain a commercial license.
