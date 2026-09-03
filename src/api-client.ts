@@ -208,6 +208,11 @@ export class DocsApiClient implements DocsClient {
     return this.request('/me/capabilities', options);
   }
 
+  /** Options for the "who sees this" dropdown. Editors only, server-side. */
+  getRoles(options: DocsRequestOptions = {}): Promise<unknown> {
+    return this.request('/roles', options);
+  }
+
   search(term: string, options: DocsRequestOptions = {}): Promise<unknown> {
     const query = createQueryString({ q: term, locale: options.locale, page: options.page, per_page: options.perPage });
     return this.request(`/search${query}`, options);

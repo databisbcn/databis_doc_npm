@@ -1,6 +1,6 @@
 {
     "name": "@databis/docs-module",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Framework-agnostic documentation UI and API client for databis/laravel-docs-module",
     "type": "module",
     "main": "dist/index.cjs",
@@ -72,7 +72,7 @@
         "laravel",
         "framework-agnostic"
     ],
-    "license": "CC-BY-NC-SA-4.0",
+    "license": "MIT",
     "engines": {
         "node": ">=18"
     },

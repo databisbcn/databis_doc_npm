@@ -15,6 +15,7 @@ import type {
   DocsClient,
   DocsImageResource,
   DocsModuleOptions,
+  DocsRoleOption,
   DocsSearchResult,
   ResolvedDocsModuleOptions,
   TiptapHeading,
@@ -63,6 +64,32 @@ const defaultOptions: ResolvedDocsModuleOptions = {
 const trashIcon = `
   <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
     <path d="M4 7h16M10 4h4M9 7v11M12 7v11M15 7v11M6 7l1 13h10l1-13"
+      fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round"></path>
+  </svg>
+`;
+
+/** Every `src` of an image node in a TipTap document, at any depth. */
+function collectImageSources(node: unknown, sources: string[] = []): string[] {
+  if (!node || typeof node !== 'object') {
+    return sources;
+  }
+
+  const candidate = node as { type?: string; attrs?: { src?: string }; content?: unknown[] };
+
+  if (candidate.type === 'image' && candidate.attrs?.src) {
+    sources.push(String(candidate.attrs.src));
+  }
+
+  (candidate.content || []).forEach((child) => collectImageSources(child, sources));
+
+  return sources;
+}
+
+/** Pencil glyph for the edit buttons. Inline for the same reason as the trash. */
+const pencilIcon = `
+  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
+    <path d="M4 20h4l10-10a2.83 2.83 0 0 0-4-4L4 16v4zM13.5 6.5l4 4"
       fill="none" stroke="currentColor" stroke-width="2"
       stroke-linecap="round" stroke-linejoin="round"></path>
   </svg>
@@ -194,6 +221,8 @@ export class DatabisDocsElement extends HTMLElementBase {
   private _articles: DocsArticle[];
   private _article: DocsArticle | null;
   private _capabilities: DocsCapabilities;
+  private _roleOptions: DocsRoleOption[];
+  private _sessionUploads: DocsImageResource[];
   private _selectedCategory: string;
   private _selectedArticle: string;
   private _requestSequence: number;
@@ -238,6 +267,8 @@ export class DatabisDocsElement extends HTMLElementBase {
         view_drafts: false
       }
     };
+    this._roleOptions = [];
+    this._sessionUploads = [];
     this._selectedCategory = '';
     this._selectedArticle = '';
     this._requestSequence = 0;
@@ -485,6 +516,7 @@ export class DatabisDocsElement extends HTMLElementBase {
 
       this._categories = unwrapData<DocsCategory[]>(response) || [];
       this._capabilities = capabilitiesResponse;
+      this._roleOptions = await this.loadRoleOptions();
       this.renderCategories();
       this.renderAdminActions();
 
@@ -539,6 +571,201 @@ export class DatabisDocsElement extends HTMLElementBase {
       }));
       return this._capabilities;
     }
+  }
+
+  /**
+   * Options for the visibility dropdown.
+   *
+   * Sequential rather than part of the Promise.all above because the answer
+   * depends on the capabilities: the endpoint is closed to non-editors, and
+   * nobody else renders the field anyway. A failure here is not worth breaking
+   * the whole load over — the editor simply comes up without the field.
+   */
+  async loadRoleOptions(): Promise<DocsRoleOption[]> {
+    if (!this._client?.getRoles
+      || !this._capabilities.roles_enabled
+      || !this._capabilities.is_admin) {
+      return [];
+    }
+
+    try {
+      const response = await this._client.getRoles();
+      return unwrapData<DocsRoleOption[]>(response) || [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * The "who sees this" field, or null when there is nothing to choose from.
+   *
+   * A native multiple select: it is the only multi-value control the module
+   * needs, and it already matches the two single selects in these forms.
+   */
+  buildRolesField(selected: string[] = []): HTMLElement | null {
+    if (this._roleOptions.length === 0) {
+      return null;
+    }
+
+    const field = document.createElement('div');
+    field.className = 'docs-module__field docs-module__roles';
+
+    const title = document.createElement('span');
+    title.className = 'docs-module__field-label';
+    title.textContent = this._translate('visibleRoles');
+
+    const body = document.createElement('div');
+    body.className = 'docs-module__roles-body';
+
+    const select = document.createElement('select');
+    select.className = 'docs-module__roles-select';
+    select.setAttribute('aria-label', this._translate('addRole'));
+
+    // The list is the state, so the select is only ever a way to add to it and
+    // never carries a value of its own. It has no name for that reason: what
+    // gets saved is read off the list.
+    const list = document.createElement('ul');
+    list.className = 'docs-module__roles-list';
+
+    body.append(select, list);
+
+    const hint = document.createElement('small');
+    hint.className = 'docs-module__hint';
+    hint.textContent = this._translate('visibleRolesHint');
+
+    field.append(title, body, hint);
+
+    selected.forEach((value) => this.appendRole(list, String(value)));
+    this.refreshRolesField(field);
+
+    return field;
+  }
+
+  /** One row of the list: the role, and the button that takes it off again. */
+  appendRole(list: HTMLElement, value: string): void {
+    const option = this._roleOptions.find((role) => role.value === value);
+
+    if (!option || this.roleItem(list, value)) {
+      return;
+    }
+
+    const item = document.createElement('li');
+    item.className = 'docs-module__roles-item';
+    item.dataset.role = value;
+
+    const label = document.createElement('span');
+    label.textContent = option.label;
+
+    const remove = document.createElement('button');
+    // Without this a button inside a form defaults to submit, and removing a
+    // role would save the article.
+    remove.type = 'button';
+    remove.className = 'docs-module__roles-remove';
+    remove.dataset.action = 'remove-role';
+    remove.dataset.role = value;
+    remove.setAttribute('aria-label', `${this._translate('removeRole')}: ${option.label}`);
+    remove.title = this._translate('removeRole');
+    remove.textContent = '×';
+
+    item.append(label, remove);
+    list.append(item);
+  }
+
+  /**
+   * Redraws the two halves around the list.
+   *
+   * The select only offers what is not on the list yet, so the same role
+   * cannot be added twice and there is nothing to deduplicate later. An empty
+   * list says so in words rather than sitting there blank, since "nothing
+   * selected" is a meaningful state here and not an unfinished one.
+   */
+  refreshRolesField(field: HTMLElement): void {
+    const select = field.querySelector<HTMLSelectElement>('.docs-module__roles-select')!;
+    const list = field.querySelector<HTMLElement>('.docs-module__roles-list')!;
+    const chosen = new Set(this.rolesIn(list));
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = this._translate('addRole');
+    select.replaceChildren(placeholder);
+
+    this._roleOptions
+      .filter((role) => !chosen.has(role.value))
+      .forEach((role) => {
+        const option = document.createElement('option');
+        option.value = role.value;
+        option.textContent = role.label;
+        select.append(option);
+      });
+
+    select.value = '';
+    select.disabled = select.options.length === 1;
+
+    const empty = list.querySelector('.docs-module__roles-empty');
+
+    if (chosen.size === 0 && !empty) {
+      const item = document.createElement('li');
+      item.className = 'docs-module__roles-empty';
+      item.textContent = this._translate('visibleToEveryone');
+      list.append(item);
+    } else if (chosen.size > 0 && empty) {
+      empty.remove();
+    }
+  }
+
+  /**
+   * The row for one role, if it is on the list.
+   *
+   * Compared in JavaScript rather than through a selector: role values come
+   * from the host's own roles table and can be anything, and CSS.escape is not
+   * available in every DOM this component is exercised in.
+   */
+  roleItem(list: HTMLElement, value: string): HTMLElement | undefined {
+    return Array.from(list.querySelectorAll<HTMLElement>('.docs-module__roles-item[data-role]'))
+      .find((item) => item.dataset.role === value);
+  }
+
+  /** @return the role values on a list, in the order they were added. */
+  rolesIn(list: HTMLElement): string[] {
+    return Array.from(list.querySelectorAll<HTMLElement>('.docs-module__roles-item[data-role]'))
+      .map((item) => item.dataset.role || '')
+      .filter(Boolean);
+  }
+
+  addRole(select: HTMLSelectElement): void {
+    const value = select.value;
+    const field = select.closest<HTMLElement>('.docs-module__roles');
+
+    if (!value || !field) {
+      return;
+    }
+
+    this.appendRole(field.querySelector<HTMLElement>('.docs-module__roles-list')!, value);
+    this.refreshRolesField(field);
+  }
+
+  removeRole(button: HTMLElement): void {
+    const field = button.closest<HTMLElement>('.docs-module__roles');
+    const value = button.dataset.role || '';
+
+    if (!field || !value) {
+      return;
+    }
+
+    const list = field.querySelector<HTMLElement>('.docs-module__roles-list')!;
+
+    this.roleItem(list, value)?.remove();
+    this.refreshRolesField(field);
+  }
+
+  /**
+   * What to send as `roles`. Undefined when the field was never rendered, so
+   * the backend leaves the existing assignment alone instead of wiping it.
+   */
+  selectedRoles(form: HTMLFormElement): string[] | undefined {
+    const list = form.querySelector<HTMLElement>('.docs-module__roles-list');
+
+    return list ? this.rolesIn(list) : undefined;
   }
 
   renderAdminActions(): void {
@@ -675,6 +902,18 @@ export class DatabisDocsElement extends HTMLElementBase {
       button.textContent = category.name;
       row.append(button);
 
+      // Edit before delete: same order as the buttons on the article header,
+      // and the destructive one stays furthest from the name it belongs to.
+      if (category.can?.update) {
+        row.append(this.rowActionButton(
+          'edit-category',
+          category.id,
+          this._translate('editCategory'),
+          pencilIcon,
+          'docs-module__edit-button'
+        ));
+      }
+
       if (category.can?.delete) {
         row.append(this.deleteButton(
           'delete-category',
@@ -750,21 +989,31 @@ export class DatabisDocsElement extends HTMLElementBase {
   }
 
   /** Icon-only button; the label lives in the tooltip and the accessible name. */
+  rowActionButton(
+    action: 'delete-article' | 'delete-category' | 'edit-category',
+    id: Identifier,
+    label: string,
+    icon: string,
+    modifier: string
+  ): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `docs-module__row-action ${modifier}`;
+    button.dataset.action = action;
+    button.dataset.id = String(id);
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    button.innerHTML = icon;
+
+    return button;
+  }
+
   deleteButton(
     action: 'delete-article' | 'delete-category',
     id: Identifier,
     label: string
   ): HTMLButtonElement {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'docs-module__row-action docs-module__delete-button';
-    button.dataset.action = action;
-    button.dataset.id = String(id);
-    button.setAttribute('aria-label', label);
-    button.title = label;
-    button.innerHTML = trashIcon;
-
-    return button;
+    return this.rowActionButton(action, id, label, trashIcon, 'docs-module__delete-button');
   }
 
   renderArticle(): void {
@@ -845,7 +1094,12 @@ export class DatabisDocsElement extends HTMLElementBase {
     toc.append(title, list);
   }
 
-  renderCategoryForm(): void {
+  /**
+   * The category form, for a new category or for an existing one.
+   *
+   * @param category  the category being edited; omit to create a new one.
+   */
+  renderCategoryForm(category: DocsCategory | null = null): void {
     const container = this.querySelector<HTMLElement>('.docs-module__content')!;
     this.destroyEditor();
     container.replaceChildren();
@@ -858,8 +1112,13 @@ export class DatabisDocsElement extends HTMLElementBase {
     form.className = 'docs-module__editor';
     form.dataset.form = 'category';
 
+    // What tells saveCategory which of the two things it is doing.
+    if (category) {
+      form.dataset.id = String(category.id);
+    }
+
     const heading = document.createElement('h1');
-    heading.textContent = this._translate('newCategory');
+    heading.textContent = this._translate(category ? 'editCategory' : 'newCategory');
 
     const nameLabel = document.createElement('label');
     nameLabel.textContent = this._translate('name');
@@ -867,6 +1126,7 @@ export class DatabisDocsElement extends HTMLElementBase {
     nameInput.name = 'name';
     nameInput.required = true;
     nameInput.maxLength = 255;
+    nameInput.value = category?.name || '';
     nameLabel.append(nameInput);
 
     const descriptionLabel = document.createElement('label');
@@ -874,6 +1134,7 @@ export class DatabisDocsElement extends HTMLElementBase {
     const descriptionInput = document.createElement('textarea');
     descriptionInput.name = 'description';
     descriptionInput.rows = 3;
+    descriptionInput.value = category?.description || '';
     descriptionLabel.append(descriptionInput);
 
     const parentLabel = document.createElement('label');
@@ -883,33 +1144,72 @@ export class DatabisDocsElement extends HTMLElementBase {
     const rootOption = document.createElement('option');
     rootOption.value = '';
     rootOption.textContent = this._translate('noParentCategory');
+    rootOption.selected = !category?.parent_id;
     parentSelect.append(rootOption);
 
-    flattenCategories(this._categories).forEach((category) => {
-      const option = document.createElement('option');
-      option.value = String(category.id);
-      option.textContent = `${'— '.repeat(category.depth || 0)}${category.name}`;
-      parentSelect.append(option);
-    });
+    // A category cannot be moved under itself or under one of its own
+    // descendants. The backend refuses it with a 422, but offering the choice
+    // at all only invites the error.
+    const forbidden = this.subtreeIds(category);
+
+    flattenCategories(this._categories)
+      .filter((option) => !forbidden.has(Number(option.id)))
+      .forEach((option) => {
+        const element = document.createElement('option');
+        element.value = String(option.id);
+        element.textContent = `${'— '.repeat(option.depth || 0)}${option.name}`;
+        element.selected = Number(category?.parent_id) === Number(option.id);
+        parentSelect.append(element);
+      });
     parentLabel.append(parentSelect);
 
     const actions = document.createElement('div');
     actions.className = 'docs-module__editor-actions';
     const saveButton = document.createElement('button');
     saveButton.type = 'submit';
-    saveButton.textContent = this._translate('createCategory');
+    saveButton.textContent = this._translate(category ? 'save' : 'createCategory');
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
     cancelButton.dataset.action = 'cancel-category';
     cancelButton.textContent = this._translate('cancel');
     actions.append(saveButton, cancelButton);
 
-    form.append(heading, nameLabel, descriptionLabel, parentLabel, actions);
+    const rolesLabel = this.buildRolesField(category?.visible_roles || []);
+
+    form.append(heading, nameLabel, descriptionLabel, parentLabel);
+    if (rolesLabel) {
+      form.append(rolesLabel);
+    }
+    form.append(actions);
     container.append(form);
     nameInput.focus();
   }
 
+  /**
+   * A category and everything under it, as ids.
+   *
+   * Empty for a category being created, which has no subtree yet and nothing
+   * to forbid.
+   */
+  subtreeIds(category: DocsCategory | null): Set<number> {
+    if (!category) {
+      return new Set();
+    }
+
+    // The node from the tree rather than the argument: the one handed in came
+    // from the flattened list and its children are what matter here.
+    const node = flattenCategories(this._categories)
+      .find((item) => Number(item.id) === Number(category.id));
+
+    return new Set([
+      Number(category.id),
+      ...flattenCategories(node?.children || []).map((item) => Number(item.id))
+    ]);
+  }
+
   async saveCategory(form: CategoryFormElement): Promise<void> {
+    const editingId = form.dataset.id ? Number(form.dataset.id) : null;
+
     this.setBusy(true);
 
     try {
@@ -918,23 +1218,39 @@ export class DatabisDocsElement extends HTMLElementBase {
         return;
       }
 
-      const response = await this._client.createCategory({
+      const roles = this.selectedRoles(form);
+
+      const payload = {
         name: form.elements.name.value.trim(),
         description: form.elements.description.value.trim() || null,
         parent_id: parentId ? Number(parentId) : null,
-        is_published: true
-      });
+        ...(roles ? { roles } : {})
+      };
+
+      const response = editingId
+        // is_published is left out on an update: it is not on this form, and
+        // sending it would quietly republish a category somebody had retired.
+        ? await this._client.updateCategory(editingId, payload)
+        : await this._client.createCategory({ ...payload, is_published: true });
+
       const category = unwrapData<DocsCategory>(response);
       this._selectedCategory = category.slug;
-      this._selectedArticle = '';
+      this._selectedArticle = editingId ? this._selectedArticle : '';
       this._editing = false;
       this._dirty = false;
       this.reflectSelection();
       await this.load();
-      this.announce(this._translate('categoryCreateSuccess'), 'success');
-      this.emitCategoryCreate(category);
+
+      if (editingId) {
+        this.announce(this._translate('categoryUpdateSuccess'), 'success');
+      } else {
+        this.announce(this._translate('categoryCreateSuccess'), 'success');
+        this.emitCategoryCreate(category);
+      }
     } catch (error) {
-      this.handleError(error, this._translate('categoryCreateError'));
+      this.handleError(error, this._translate(
+        editingId ? 'categoryUpdateError' : 'categoryCreateError'
+      ));
     } finally {
       this.setBusy(false);
     }
@@ -945,6 +1261,14 @@ export class DatabisDocsElement extends HTMLElementBase {
     this.destroyEditor();
     container.replaceChildren();
     this.querySelector<HTMLElement>('.docs-module__toc')!.replaceChildren();
+
+    // Only when the editor is being opened, not when it is redrawn in place —
+    // a save conflict re-renders it, and the uploads made before the conflict
+    // still have to be accounted for when the editor is finally left.
+    if (!this._editing) {
+      this._sessionUploads = [];
+    }
+
     this._editing = true;
     this._creating = mode === 'create';
     this._dirty = false;
@@ -954,7 +1278,8 @@ export class DatabisDocsElement extends HTMLElementBase {
           title: '',
           excerpt: '',
           content: emptyDocument(),
-          doc_category_id: this.selectedCategoryId()
+          doc_category_id: this.selectedCategoryId(),
+          visible_roles: [] as string[]
         }
       : this._article;
 
@@ -1029,7 +1354,14 @@ export class DatabisDocsElement extends HTMLElementBase {
     cancelButton.dataset.action = 'cancel-edit';
     cancelButton.textContent = this._translate('cancel');
     actions.append(saveButton, cancelButton);
-    form.append(heading, categoryLabel, titleLabel, excerptLabel, contentLabel, actions);
+
+    const rolesLabel = this.buildRolesField(sourceArticle.visible_roles || []);
+
+    form.append(heading, categoryLabel, titleLabel, excerptLabel);
+    if (rolesLabel) {
+      form.append(rolesLabel);
+    }
+    form.append(contentLabel, actions);
     container.append(form);
 
     this._editor = createArticleEditor({
@@ -1060,7 +1392,57 @@ export class DatabisDocsElement extends HTMLElementBase {
     }
 
     const response = await this._client.uploadImage(file);
-    return unwrapData<DocsImageResource>(response);
+    const image = unwrapData<DocsImageResource>(response);
+
+    // Remembered for the length of the editing session. The upload happens the
+    // moment the file is dropped, long before anything is saved, so this is the
+    // only place that knows the picture exists at all: nothing on the server
+    // can tell an image being written into an article right now from one that
+    // was abandoned.
+    this._sessionUploads.push(image);
+
+    return image;
+  }
+
+  /**
+   * Deletes the images uploaded during this editing session that did not make
+   * it into the document that ended up stored.
+   *
+   * Called when leaving the editor. On cancel that is the article as it stands
+   * on the server, so every upload of this session goes; on a successful save
+   * it is what was just written, which catches the picture that was inserted
+   * and then taken out again before saving.
+   *
+   * Nothing was uploaded, nothing is requested — the common case costs no
+   * round trip at all. Failures are swallowed: the article is already saved or
+   * already discarded, and docs:prune-images is the backstop for a file that
+   * outlives its request.
+   */
+  async discardUnusedUploads(storedContent?: unknown): Promise<void> {
+    const uploads = this._sessionUploads;
+    this._sessionUploads = [];
+
+    if (uploads.length === 0 || !this._client) {
+      return;
+    }
+
+    const kept = collectImageSources(storedContent);
+    const unused = uploads.filter((image) => {
+      const reference = image.path || image.url || '';
+
+      return reference !== '' && !kept.some((src) => src.includes(reference));
+    });
+
+    await Promise.all(unused.map(async (image) => {
+      try {
+        await this._client!.deleteImage(image.id);
+      } catch (error) {
+        this.dispatchEvent(new CustomEvent('docs:error', {
+          bubbles: true,
+          detail: { error }
+        }));
+      }
+    }));
   }
 
   /**
@@ -1082,12 +1464,17 @@ export class DatabisDocsElement extends HTMLElementBase {
     this.setBusy(true);
 
     try {
+      const roles = this.selectedRoles(form);
+
       const articleData = {
         doc_category_id: Number(form.elements.category.value),
         title: form.elements.title.value.trim(),
         excerpt: form.elements.excerpt.value.trim() || null,
         content,
-        locale: this._options.locale
+        locale: this._options.locale,
+        // Omitted, not empty, when the field was never rendered: the backend
+        // reads an absent key as "leave the assignment alone".
+        ...(roles ? { roles } : {})
       };
       const response = this._creating
         ? await this._client.createArticle(articleData)
@@ -1097,6 +1484,12 @@ export class DatabisDocsElement extends HTMLElementBase {
           });
       const wasCreating = this._creating;
       const savedArticle = unwrapData<DocsArticle>(response);
+
+      // The backend already collected what this save dropped from the article.
+      // What it cannot see is an upload that never reached the document at
+      // all — inserted and then taken out again before saving.
+      this.discardUnusedUploads(content);
+
       this._article = savedArticle;
       const category = flattenCategories(this._categories)
         .find((item) => Number(item.id) === Number(savedArticle.doc_category_id));
@@ -1494,6 +1887,13 @@ export class DatabisDocsElement extends HTMLElementBase {
       return;
     }
 
+    // Ahead of the two "mark the form dirty" branches below, which return.
+    if (event.type === 'input' && eventTarget.matches('.docs-module__roles-select')) {
+      this.addRole(eventTarget as HTMLSelectElement);
+      this._dirty = true;
+      return;
+    }
+
     if (event.type === 'input' && eventTarget.closest('[data-form="article"]')) {
       this._dirty = true;
       return;
@@ -1524,6 +1924,16 @@ export class DatabisDocsElement extends HTMLElementBase {
       this.renderCategoryForm();
     } else if (action === 'create-article' && this._capabilities.can?.create_article) {
       this.renderEditor('create');
+    } else if (action === 'edit-category') {
+      const category = flattenCategories(this._categories)
+        .find((item) => String(item.id) === actionTarget.dataset.id);
+
+      if (category?.can?.update) {
+        this.renderCategoryForm(category);
+      }
+    } else if (action === 'remove-role') {
+      this.removeRole(actionTarget);
+      this._dirty = true;
     } else if (action === 'edit') {
       this.renderEditor('edit');
     } else if (action === 'toggle-publish') {
@@ -1533,6 +1943,9 @@ export class DatabisDocsElement extends HTMLElementBase {
     } else if (action === 'delete-category') {
       this.deleteCategory(actionTarget.dataset.id || '');
     } else if (action === 'cancel-edit') {
+      // Against the stored article, which cancelling goes back to. On a new
+      // article there is nothing stored, so every upload of the session goes.
+      this.discardUnusedUploads(this._creating ? null : this._article?.content);
       this._editing = false;
       this._creating = false;
       this._dirty = false;
